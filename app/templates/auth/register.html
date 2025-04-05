@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Registro - PyPOS Local{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Registro de Usuario</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auth.register') }}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label">Nombre de Usuario <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                            <div class="form-text">Debe ser único, sin espacios ni caracteres especiales.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name">
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">Mínimo 8 caracteres, incluyendo mayúsculas, minúsculas y números.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="password_confirm" class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>Registrarse
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-0">¿Ya tienes una cuenta? <a href="{{ url_for('auth.login') }}">Inicia sesión aquí</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

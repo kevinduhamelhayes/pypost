@@ -7,6 +7,7 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env si existe
@@ -15,6 +16,7 @@ load_dotenv()
 # Inicialización de extensiones
 db = SQLAlchemy()
 migrate = Migrate()
+login_manager = LoginManager()
 
 def create_app(test_config=None):
     """
@@ -55,10 +57,22 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     
+    # Configurar Flask-Login
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'  # Ruta para redirigir si se requiere login
+    login_manager.login_message = 'Por favor inicia sesión para acceder a esta página.'
+    login_manager.login_message_category = 'warning'
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+        return User.query.get(int(user_id))
+    
     # Registrar blueprints
-    from app.routes import home_routes, product_routes
+    from app.routes import home_routes, product_routes, auth_routes
     app.register_blueprint(home_routes.bp)
     app.register_blueprint(product_routes.bp)
+    app.register_blueprint(auth_routes.bp)
     
     # Ruta de bienvenida para verificar que la app está funcionando
     @app.route('/hello')

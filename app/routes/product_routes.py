@@ -2,12 +2,14 @@
 Blueprint para las rutas relacionadas con productos.
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required
 from app.models.product import Product
 from app import db
 
 bp = Blueprint('products', __name__, url_prefix='/products')
 
 @bp.route('/')
+@login_required
 def index():
     """
     Lista todos los productos.
@@ -19,6 +21,7 @@ def index():
     return render_template('products/index.html', products=products)
 
 @bp.route('/new', methods=['GET', 'POST'])
+@login_required
 def new():
     """
     Muestra el formulario para crear un nuevo producto y procesa la creación.
@@ -79,6 +82,7 @@ def new():
     return render_template('products/new.html')
 
 @bp.route('/<int:id>', methods=['GET'])
+@login_required
 def show(id):
     """
     Muestra los detalles de un producto específico.
@@ -93,6 +97,7 @@ def show(id):
     return render_template('products/show.html', product=product)
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit(id):
     """
     Muestra el formulario para editar un producto y procesa la actualización.
@@ -148,6 +153,7 @@ def edit(id):
     return render_template('products/edit.html', product=product)
 
 @bp.route('/<int:id>/delete', methods=['POST'])
+@login_required
 def delete(id):
     """
     Elimina un producto de la base de datos.
@@ -171,6 +177,7 @@ def delete(id):
 
 # API para usar con AJAX
 @bp.route('/api', methods=['GET'])
+@login_required
 def api_index():
     """
     API que devuelve la lista de productos en formato JSON.
@@ -193,6 +200,7 @@ def api_index():
     return jsonify(result)
 
 @bp.route('/api/<int:id>', methods=['GET'])
+@login_required
 def api_show(id):
     """
     API que devuelve un producto específico en formato JSON.
