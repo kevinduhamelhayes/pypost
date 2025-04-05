@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Recibo de Venta #{{ sale.id }}{% endblock %}
+
+{% block styles %}
+<style>
+    .receipt-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .receipt-details {
+        margin-bottom: 20px;
+    }
+    .receipt-table {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .receipt-table th, .receipt-table td {
+        padding: 8px;
+    }
+    .receipt-footer {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 0.9em;
+    }
+    .receipt-totals {
+        width: 300px;
+        margin-left: auto;
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            font-size: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="receipt-container">
+        <div class="card">
+            <div class="card-body">
+                <!-- Cabecera del recibo -->
+                <div class="receipt-header">
+                    <h2>{{ config['APP_NAME'] }}</h2>
+                    <p>Recibo de Venta</p>
+                </div>
+                
+                <!-- Detalles de la venta -->
+                <div class="receipt-details row">
+                    <div class="col-md-6">
+                        <p><strong>Recibo #:</strong> {{ sale.id }}</p>
+                        <p><strong>Fecha:</strong> {{ sale.sale_datetime.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <p><strong>Vendedor:</strong> {{ sale.user.username }}</p>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <p><strong>Cliente:</strong> {{ sale.customer.name if sale.customer else 'Cliente General' }}</p>
+                        <p><strong>Método de Pago:</strong> 
+                            {% if sale.payment_method == 'cash' %}
+                                Efectivo
+                            {% elif sale.payment_method == 'card' %}
+                                Tarjeta
+                            {% elif sale.payment_method == 'transfer' %}
+                                Transferencia
+                            {% else %}
+                                Otro
+                            {% endif %}
+                        </p>
+                        <p><strong>Estado:</strong> 
+                            {% if sale.status == 'completed' %}
+                                <span class="badge badge-success">Completada</span>
+                            {% elif sale.status == 'pending' %}
+                                <span class="badge badge-warning">Pendiente</span>
+                            {% elif sale.status == 'cancelled' %}
+                                <span class="badge badge-danger">Cancelada</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Tabla de productos -->
+                <table class="table receipt-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-right">Precio Unitario</th>
+                            <th class="text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.items %}
+                        <tr>
+                            <td>{{ item.product.name }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-right">${{ item.unit_price }}</td>
+                            <td class="text-right">${{ item.subtotal }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Totales -->
+                <div class="receipt-totals">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Subtotal:</th>
+                            <td class="text-right">${{ sale.subtotal }}</td>
+                        </tr>
+                        {% if sale.discount_amount > 0 %}
+                        <tr>
+                            <th>Descuento:</th>
+                            <td class="text-right">-${{ sale.discount_amount }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if sale.tax_amount > 0 %}
+                        <tr>
+                            <th>Impuesto:</th>
+                            <td class="text-right">${{ sale.tax_amount }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="font-weight-bold">
+                            <th>Total:</th>
+                            <td class="text-right">${{ sale.final_amount }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Notas -->
+                {% if sale.notes %}
+                <div class="mt-4">
+                    <h6>Notas:</h6>
+                    <p>{{ sale.notes }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Pie de página -->
+                <div class="receipt-footer">
+                    <p>¡Gracias por su compra!</p>
+                    <p>{{ config['APP_NAME'] }} - Sistema de Punto de Venta</p>
+                </div>
+                
+                <!-- Botones de acción - no se imprimirán -->
+                <div class="mt-4 text-center no-print">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        <i class="fas fa-print"></i> Imprimir Recibo
+                    </button>
+                    <a href="{{ url_for('pos.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al POS
+                    </a>
+                    {% if sale.status != 'cancelled' %}
+                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#cancelModal">
+                        <i class="fas fa-times"></i> Cancelar Venta
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cancelación -->
+{% if sale.status != 'cancelled' %}
+<div class="modal fade" id="cancelModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Venta</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea cancelar esta venta?</p>
+                <p>Esta acción devolverá los productos al inventario y no se podrá deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">No, Mantener Venta</button>
+                <form action="{{ url_for('pos.cancel_sale', sale_id=sale.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Sí, Cancelar Venta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

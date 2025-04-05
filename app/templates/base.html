@@ -10,7 +10,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- CSS Personalizado -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    {% block extra_css %}{% endblock %}
+    {% block styles %}{% endblock %}
 </head>
 <body>
     <!-- Barra de navegación -->
@@ -31,24 +31,59 @@
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
+                    
+                    <!-- Punto de Venta -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('products.index') }}">
-                            <i class="fas fa-box me-1"></i>Productos
+                        <a class="nav-link" href="{{ url_for('pos.index') }}">
+                            <i class="fas fa-cash-register me-1"></i>Punto de Venta
                         </a>
                     </li>
+                    
+                    <!-- Sesiones de Caja -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('categories.index') }}">
-                            <i class="fas fa-tags me-1"></i>Categorías
+                        <a class="nav-link" href="{{ url_for('cashier.index') }}">
+                            <i class="fas fa-cash-register me-1"></i>Sesiones de Caja
                         </a>
                     </li>
+                    
+                    <!-- Clientes -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('customers.index') }}">
+                            <i class="fas fa-users me-1"></i>Clientes
+                        </a>
+                    </li>
+                    
+                    <!-- Productos y Categorías -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-boxes me-1"></i>Inventario
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('products.index') }}">
+                                <i class="fas fa-box me-1"></i>Productos
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('categories.index') }}">
+                                <i class="fas fa-tags me-1"></i>Categorías
+                            </a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Administración (solo para administradores) -->
                     {% if current_user.is_admin %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.users_list') }}">
-                            <i class="fas fa-users me-1"></i>Usuarios
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cogs me-1"></i>Administración
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.users_list') }}">
+                                <i class="fas fa-users me-1"></i>Usuarios
+                            </a></li>
+                            <!-- Agregar más opciones de administración aquí -->
+                        </ul>
                     </li>
                     {% endif %}
-                    <!-- Agregar más opciones de menú aquí -->
                     {% endif %}
                 </ul>
                 
@@ -87,14 +122,16 @@
     </nav>
 
     <!-- Contenedor principal -->
-    <div class="container mt-4">
+    <main class="py-4">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="container">
+                        <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -102,7 +139,7 @@
 
         <!-- Contenido principal -->
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <!-- Footer -->
     <footer class="footer mt-auto py-3 bg-light">
@@ -117,6 +154,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Scripts personalizados -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block extra_js %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html> 

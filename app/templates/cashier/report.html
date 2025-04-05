@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes de Sesiones de Caja{% endblock %}
+
+{% block styles %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Reportes de Sesiones de Caja</h2>
+        <div>
+            <a href="{{ url_for('cashier.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4 d-print-none">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('cashier.report') }}" class="mb-3">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="period">Período:</label>
+                            <select class="form-control" id="period" name="period">
+                                <option value="today" {% if period == 'today' %}selected{% endif %}>Hoy</option>
+                                <option value="yesterday" {% if period == 'yesterday' %}selected{% endif %}>Ayer</option>
+                                <option value="week" {% if period == 'week' %}selected{% endif %}>Última semana</option>
+                                <option value="month" {% if period == 'month' %}selected{% endif %}>Último mes</option>
+                                <option value="custom" {% if period == 'custom' %}selected{% endif %}>Personalizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 custom-date-range" style="display: none;">
+                        <div class="form-group">
+                            <label for="start_date">Fecha inicio:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3 custom-date-range" style="display: none;">
+                        <div class="form-group">
+                            <label for="end_date">Fecha fin:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3 align-self-end">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Estadísticas</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-center stats-card bg-info text-white mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Sesiones</h5>
+                            <p class="display-4">{{ stats.total_sessions }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center stats-card bg-success text-white mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Sesiones Cerradas</h5>
+                            <p class="display-4">{{ stats.closed_sessions }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center stats-card bg-warning text-white mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Sesiones Abiertas</h5>
+                            <p class="display-4">{{ stats.open_sessions }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center stats-card bg-primary text-white mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Diferencia Total</h5>
+                            <p class="display-4">
+                                {% if stats.total_difference > 0 %}
+                                    +${{ stats.total_difference }}
+                                {% elif stats.total_difference < 0 %}
+                                    -${{ stats.total_difference|abs }}
+                                {% else %}
+                                    $0.00
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Totales de Caja</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Total Monto Inicial:</th>
+                                    <td class="text-right">${{ stats.total_initial }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Monto Final:</th>
+                                    <td class="text-right">${{ stats.total_final }}</td>
+                                </tr>
+                                <tr class="font-weight-bold">
+                                    <th>Diferencia Total:</th>
+                                    <td class="text-right">
+                                        {% if stats.total_difference > 0 %}
+                                            <span class="text-success">+${{ stats.total_difference }}</span>
+                                        {% elif stats.total_difference < 0 %}
+                                            <span class="text-danger">-${{ stats.total_difference|abs }}</span>
+                                        {% else %}
+                                            $0.00
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Información del Período</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Período:</strong> 
+                                {% if period == 'today' %}
+                                    Hoy
+                                {% elif period == 'yesterday' %}
+                                    Ayer
+                                {% elif period == 'week' %}
+                                    Última semana
+                                {% elif period == 'month' %}
+                                    Último mes
+                                {% else %}
+                                    Personalizado
+                                {% endif %}
+                            </p>
+                            <p><strong>Desde:</strong> {{ start_date.strftime('%d/%m/%Y') if start_date else 'N/A' }}</p>
+                            <p><strong>Hasta:</strong> {{ end_date.strftime('%d/%m/%Y') if end_date else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de sesiones -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Sesiones en el Período</h5>
+        </div>
+        <div class="card-body">
+            {% if sessions %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Usuario</th>
+                                <th>Apertura</th>
+                                <th>Cierre</th>
+                                <th>Monto Inicial</th>
+                                <th>Monto Final</th>
+                                <th>Diferencia</th>
+                                <th class="d-print-none">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                                <tr>
+                                    <td>{{ session.id }}</td>
+                                    <td>{{ session.user.username }}</td>
+                                    <td>{{ session.open_time.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        {% if session.close_time %}
+                                            {{ session.close_time.strftime('%d/%m/%Y %H:%M') }}
+                                        {% else %}
+                                            <span class="badge badge-success">Abierta</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ session.initial_cash }}</td>
+                                    <td>
+                                        {% if session.final_cash is not none %}
+                                            ${{ session.final_cash }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.cash_difference is not none %}
+                                            {% if session.cash_difference > 0 %}
+                                                <span class="text-success">+${{ session.cash_difference }}</span>
+                                            {% elif session.cash_difference < 0 %}
+                                                <span class="text-danger">-${{ session.cash_difference|abs }}</span>
+                                            {% else %}
+                                                $0.00
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="d-print-none">
+                                        <a href="{{ url_for('cashier.details', session_id=session.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> Detalles
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <p class="mb-0">No hay sesiones de caja registradas para el período seleccionado.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Mostrar/ocultar campos de fecha personalizada
+        function toggleCustomDateFields() {
+            if ($('#period').val() === 'custom') {
+                $('.custom-date-range').show();
+            } else {
+                $('.custom-date-range').hide();
+            }
+        }
+        
+        // Inicializar visibilidad de campos
+        toggleCustomDateFields();
+        
+        // Actualizar visibilidad cuando cambia el período
+        $('#period').change(function() {
+            toggleCustomDateFields();
+        });
+    });
+</script>
+{% endblock %} 

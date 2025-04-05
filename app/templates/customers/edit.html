@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Cliente{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Editar Cliente: {{ customer.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('customers.edit', customer_id=customer.id) }}">
+                        <div class="form-group">
+                            <label for="name">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="name" name="name" required value="{{ customer.name }}">
+                            <small class="form-text text-muted">Ingrese el nombre completo del cliente.</small>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="document_type">Tipo de Documento</label>
+                                <select class="form-control" id="document_type" name="document_type">
+                                    <option value="dni" {% if customer.document_type == 'dni' %}selected{% endif %}>DNI</option>
+                                    <option value="passport" {% if customer.document_type == 'passport' %}selected{% endif %}>Pasaporte</option>
+                                    <option value="ruc" {% if customer.document_type == 'ruc' %}selected{% endif %}>RUC</option>
+                                    <option value="other" {% if customer.document_type == 'other' %}selected{% endif %}>Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-8">
+                                <label for="document">Número de Documento</label>
+                                <input type="text" class="form-control" id="document" name="document" value="{{ customer.document or '' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ customer.email or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Teléfono</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ customer.phone or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="address">Dirección</label>
+                            <textarea class="form-control" id="address" name="address" rows="2">{{ customer.address or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Notas</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Observaciones o información adicional...">{{ customer.notes or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="is_active" name="is_active" {% if customer.is_active %}checked{% endif %}>
+                                <label class="custom-control-label" for="is_active">Cliente Activo</label>
+                            </div>
+                            <small class="form-text text-muted">Los clientes inactivos no aparecerán en las búsquedas del punto de venta.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <p class="mb-0"><strong>Creado:</strong> {{ customer.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                                    {% if customer.updated_at %}
+                                        <p class="mb-0"><strong>Última actualización:</strong> {{ customer.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <p class="mb-0"><strong>Nota:</strong> Los campos marcados con * son obligatorios.</p>
+                        </div>
+                        
+                        <div class="form-group text-center">
+                            <a href="{{ url_for('customers.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Actualizar Cliente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Verificar el tipo de documento y aplicar validaciones
+        $('#document_type').change(function() {
+            var docType = $(this).val();
+            var docInput = $('#document');
+            
+            // Limpiar clases y mensajes previos
+            docInput.removeClass('is-invalid');
+            
+            switch(docType) {
+                case 'dni':
+                    docInput.attr('placeholder', 'Ingrese 8 dígitos');
+                    docInput.attr('pattern', '[0-9]{8}');
+                    break;
+                case 'ruc':
+                    docInput.attr('placeholder', 'Ingrese 11 dígitos');
+                    docInput.attr('pattern', '[0-9]{11}');
+                    break;
+                case 'passport':
+                    docInput.attr('placeholder', 'Ingrese número de pasaporte');
+                    docInput.removeAttr('pattern');
+                    break;
+                default:
+                    docInput.attr('placeholder', 'Ingrese número de documento');
+                    docInput.removeAttr('pattern');
+            }
+        }).trigger('change'); // Disparar el evento al cargar
+    });
+</script>
+{% endblock %} 

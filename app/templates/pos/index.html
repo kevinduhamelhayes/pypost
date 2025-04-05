@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Punto de Venta{% endblock %}
+
+{% block styles %}
+<style>
+    .product-item {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #dee2e6;
+    }
+    .product-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .cart-item {
+        border-bottom: 1px solid #eee;
+        padding: 8px 0;
+    }
+    #cart-container {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    .payment-method-btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    #customer-info {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .out-of-stock {
+        opacity: 0.5;
+    }
+    .quantity-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Panel de productos -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Productos</h5>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" id="search-product" class="form-control" placeholder="Buscar producto...">
+                            <div class="input-group-append">
+                                <button class="btn btn-light" type="button" id="search-btn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="products-container">
+                        {% for product in products %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card product-item {% if not product.is_in_stock %}out-of-stock{% endif %}" 
+                                 data-id="{{ product.id }}" 
+                                 data-name="{{ product.name }}" 
+                                 data-price="{{ product.sale_price }}"
+                                 data-stock="{{ product.current_stock }}">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">{{ product.name }}</h6>
+                                    <p class="card-text text-primary font-weight-bold">${{ product.sale_price }}</p>
+                                    <small class="text-muted">Stock: {{ product.current_stock }}</small>
+                                    {% if not product.is_in_stock %}
+                                    <div class="mt-2 text-danger"><small>Sin stock</small></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div id="search-results" class="mt-3" style="display: none;">
+                        <h6>Resultados de búsqueda:</h6>
+                        <div class="row" id="search-results-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de carrito -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart"></i> Carrito
+                        <button class="btn btn-sm btn-outline-light float-right" id="clear-cart">Limpiar</button>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Información del cliente -->
+                    <div id="customer-info" class="bg-light">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="mb-1">Cliente</h6>
+                            <button class="btn btn-sm btn-primary" id="select-customer">Seleccionar</button>
+                        </div>
+                        <p class="mb-0" id="customer-name">Cliente General</p>
+                        <input type="hidden" id="customer-id" value="">
+                    </div>
+                    
+                    <!-- Items del carrito -->
+                    <div id="cart-container">
+                        <div id="cart-items" class="mb-3">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                                <p>El carrito está vacío</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Totales -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Descuento:</span>
+                            <span>
+                                <input type="number" id="discount" min="0" value="0" class="form-control form-control-sm" style="width: 100px;">
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Impuesto:</span>
+                            <span id="tax">$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between font-weight-bold">
+                            <span>Total:</span>
+                            <span id="total">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Métodos de pago -->
+                    <div class="mt-4">
+                        <h6>Método de pago</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <button class="btn btn-primary payment-method-btn" data-method="cash">
+                                    <i class="fas fa-money-bill-alt"></i> Efectivo
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-info payment-method-btn" data-method="card">
+                                    <i class="fas fa-credit-card"></i> Tarjeta
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-secondary payment-method-btn" data-method="transfer">
+                                    <i class="fas fa-exchange-alt"></i> Transferencia
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-warning payment-method-btn" data-method="other">
+                                    <i class="fas fa-ellipsis-h"></i> Otro
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notas de venta -->
+                    <div class="mt-3">
+                        <div class="form-group">
+                            <label for="sale-notes">Notas:</label>
+                            <textarea id="sale-notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Botón de procesar venta -->
+                    <div class="mt-3">
+                        <button id="process-sale" class="btn btn-success btn-lg btn-block" disabled>
+                            <i class="fas fa-check"></i> Procesar Venta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Selección de Cliente -->
+<div class="modal fade" id="customerModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Seleccionar Cliente</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="customer-search" class="form-control" placeholder="Buscar cliente...">
+                </div>
+                <div id="customer-results" class="mt-3">
+                    <!-- Aquí se cargarán los resultados de búsqueda de clientes -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <a href="{{ url_for('customers.create') }}" class="btn btn-primary">Nuevo Cliente</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Venta</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de procesar esta venta?</p>
+                <div id="confirmation-details">
+                    <p><strong>Total:</strong> <span id="confirm-total"></span></p>
+                    <p><strong>Método de pago:</strong> <span id="confirm-payment"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirm-sale">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

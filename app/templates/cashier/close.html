@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Cerrar Sesión de Caja{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Cerrar Sesión de Caja #{{ session.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Información de la Sesión:</h6>
+                        <p><strong>Apertura:</strong> {{ session.open_time.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <p><strong>Monto inicial:</strong> ${{ session.initial_cash }}</p>
+                        <p><strong>Ventas realizadas:</strong> {{ sales_count }}</p>
+                        <p><strong>Total ventas:</strong> ${{ total_sales }}</p>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">Balance Esperado</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Monto inicial:</strong></p>
+                                    <p><strong>Ventas en efectivo:</strong></p>
+                                    <p><strong>TOTAL ESPERADO:</strong></p>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <p>${{ session.initial_cash }}</p>
+                                    <p>${{ expected_cash - session.initial_cash }}</p>
+                                    <p class="font-weight-bold">${{ expected_cash }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" action="{{ url_for('cashier.close_session', session_id=session.id) }}">
+                        <div class="form-group">
+                            <label for="final_cash">Monto Final de Caja ($):</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="final_cash" name="final_cash" required>
+                            <small class="form-text text-muted">Ingrese el monto de dinero con el que cierra la caja.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Notas:</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Observaciones o comentarios sobre el cierre de caja..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Una vez cerrada la sesión de caja, no podrá realizar más ventas hasta abrir una nueva sesión.
+                        </div>
+                        
+                        <div class="form-group text-center">
+                            <a href="{{ url_for('cashier.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-door-closed"></i> Cerrar Sesión
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Sugerir el monto esperado como valor por defecto
+        $('#final_cash').val({{ expected_cash }});
+    });
+</script>
+{% endblock %}
+{% endblock %} 
