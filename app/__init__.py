@@ -57,15 +57,22 @@ def create_app(config_class=Config):
         return User.query.get(int(user_id))
     
     # Registrar blueprints
-    from app.routes import auth, main, products, inventory, customers, pos, reports
+    from app.routes import (
+        main, auth, products, categories, pos, cashier,
+        customers, inventory, suppliers, purchase_orders, reports
+    )
     
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(main.bp)
-    app.register_blueprint(products.bp)
-    app.register_blueprint(inventory.bp)
-    app.register_blueprint(customers.bp)
-    app.register_blueprint(pos.bp)
-    app.register_blueprint(reports.bp)
+    app.register_blueprint(main)
+    app.register_blueprint(auth)
+    app.register_blueprint(products)
+    app.register_blueprint(categories)
+    app.register_blueprint(pos)
+    app.register_blueprint(cashier)
+    app.register_blueprint(customers)
+    app.register_blueprint(inventory)
+    app.register_blueprint(suppliers)
+    app.register_blueprint(purchase_orders)
+    app.register_blueprint(reports)
     
     # Ruta de bienvenida para verificar que la app está funcionando
     @app.route('/hello')
