@@ -1,0 +1,81 @@
+/* 
+ * PyPOS Local - Estilos personalizados
+ */
+
+/* Ajustes generales */
+body {
+    font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* Mejoras a componentes de Bootstrap */
+.jumbotron {
+    background-color: #f8f9fa;
+    padding: 2rem;
+    border-radius: 0.3rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    font-weight: 500;
+}
+
+/* Estilos específicos para secciones */
+.navbar-brand {
+    font-weight: 700;
+}
+
+.table th {
+    font-weight: 600;
+}
+
+/* Animaciones y hover effects */
+.btn {
+    transition: all 0.2s;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+}
+
+/* Estilos para elementos específicos de PDV */
+.product-card {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 1rem;
+    }
+}
+
+/* Modo oscuro (comentado por ahora) */
+/*
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+    
+    --bs-body-color: #ced4da;
+    --bs-body-bg: #212529;
+    --bs-border-color: #495057;
+}
+*/ 

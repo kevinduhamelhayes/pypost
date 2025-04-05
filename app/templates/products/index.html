@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Productos - PyPOS Local{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Productos</h1>
+    <a href="{{ url_for('products.new') }}" class="btn btn-primary">
+        <i class="fas fa-plus-circle me-1"></i>Nuevo Producto
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" id="search-products" class="form-control" placeholder="Buscar productos...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <select class="form-select" id="filter-products">
+                    <option value="all">Todos los productos</option>
+                    <option value="in-stock">En stock</option>
+                    <option value="out-of-stock">Sin stock</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>SKU</th>
+                        <th>Código de Barras</th>
+                        <th>Precio de Compra</th>
+                        <th>Precio de Venta</th>
+                        <th>Stock</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if products %}
+                        {% for product in products %}
+                            <tr>
+                                <td>{{ product.id }}</td>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.sku or '-' }}</td>
+                                <td>{{ product.barcode or '-' }}</td>
+                                <td>${{ product.purchase_price }}</td>
+                                <td>${{ product.sale_price }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if product.is_in_stock else 'danger' }}">
+                                        {{ product.current_stock }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('products.show', id=product.id) }}" class="btn btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-danger" 
+                                                onclick="confirmDelete({{ product.id }}, '{{ product.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <p class="mb-0 text-muted">No hay productos registrados</p>
+                                <a href="{{ url_for('products.new') }}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus-circle me-1"></i>Crear primer producto
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar el producto <span id="product-name"></span>?
+                <p class="mt-2 text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="delete-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para confirmar la eliminación de un producto
+    function confirmDelete(productId, productName) {
+        document.getElementById('product-name').textContent = productName;
+        document.getElementById('delete-form').action = "{{ url_for('products.delete', id=0) }}".replace('0', productId);
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+    
+    // Funcionalidad de búsqueda (a implementar con JavaScript)
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-products');
+        const filterSelect = document.getElementById('filter-products');
+        
+        searchInput.addEventListener('keyup', function() {
+            // Aquí se implementará la lógica de búsqueda
+            console.log('Buscando:', searchInput.value);
+        });
+        
+        filterSelect.addEventListener('change', function() {
+            // Aquí se implementará la lógica de filtrado
+            console.log('Filtrando por:', filterSelect.value);
+        });
+    });
+</script>
+{% endblock %} 

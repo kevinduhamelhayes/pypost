@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - PyPOS Local{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Detalles del Producto</h1>
+    <div>
+        <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-primary me-2">
+            <i class="fas fa-edit me-1"></i>Editar
+        </a>
+        <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver a Productos
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="m-0">Información General</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">ID:</div>
+                    <div class="col-md-9">{{ product.id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Nombre:</div>
+                    <div class="col-md-9">{{ product.name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">SKU:</div>
+                    <div class="col-md-9">{{ product.sku or 'No definido' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Código de Barras:</div>
+                    <div class="col-md-9">{{ product.barcode or 'No definido' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Descripción:</div>
+                    <div class="col-md-9">{{ product.description or 'Sin descripción' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Fecha de Creación:</div>
+                    <div class="col-md-9">{{ product.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 fw-bold">Última Actualización:</div>
+                    <div class="col-md-9">{{ product.updated_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">Precios e Inventario</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="display-6">${{ product.sale_price }}</div>
+                    <div class="text-muted">Precio de Venta</div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mb-3">
+                    <div class="col fw-bold">Precio de Compra:</div>
+                    <div class="col text-end">${{ product.purchase_price }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col fw-bold">Ganancia por Unidad:</div>
+                    <div class="col text-end text-success">${{ product.profit_amount }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col fw-bold">Margen de Beneficio:</div>
+                    <div class="col text-end">{{ product.profit_margin }}%</div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mb-2">
+                    <div class="col fw-bold">Stock Actual:</div>
+                    <div class="col text-end">
+                        <span class="badge bg-{{ 'success' if product.is_in_stock else 'danger' }} p-2">
+                            {{ product.current_stock }} unidades
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <button type="button" class="btn btn-outline-success" onclick="alert('Funcionalidad de ajuste de inventario próximamente')">
+                        <i class="fas fa-plus-circle me-1"></i>Ajustar Inventario
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="m-0">Acciones</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-danger w-100" 
+                        onclick="confirmDelete({{ product.id }}, '{{ product.name }}')">
+                    <i class="fas fa-trash me-1"></i>Eliminar Producto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar el producto <span id="product-name"></span>?
+                <p class="mt-2 text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="delete-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para confirmar la eliminación de un producto
+    function confirmDelete(productId, productName) {
+        document.getElementById('product-name').textContent = productName;
+        document.getElementById('delete-form').action = "{{ url_for('products.delete', id=0) }}".replace('0', productId);
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+</script>
+{% endblock %} 

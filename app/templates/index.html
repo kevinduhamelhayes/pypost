@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">¡Bienvenido a {{ app_name }}!</h1>
+    <p class="lead">El sistema de Punto de Venta local, simple y eficiente para tu negocio.</p>
+    <hr class="my-4">
+    <p>Comienza a gestionar tu negocio de manera fácil y eficiente.</p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <a href="{{ url_for('home.dashboard') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-tachometer-alt me-2"></i>Ir al Dashboard
+        </a>
+        <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary btn-lg">
+            <i class="fas fa-box me-2"></i>Gestionar Productos
+        </a>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-box fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Gestión de Productos</h5>
+                <p class="card-text">Administra tu catálogo de productos, precios, stock y más.</p>
+                <a href="{{ url_for('products.index') }}" class="btn btn-sm btn-outline-primary">Ir a Productos</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Punto de Venta</h5>
+                <p class="card-text">Realiza ventas de manera rápida y sencilla con nuestra interfaz intuitiva.</p>
+                <a href="#" class="btn btn-sm btn-outline-primary">Próximamente</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Informes y Estadísticas</h5>
+                <p class="card-text">Analiza el rendimiento de tu negocio con informes detallados.</p>
+                <a href="#" class="btn btn-sm btn-outline-primary">Próximamente</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

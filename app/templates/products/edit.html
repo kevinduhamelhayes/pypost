@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Producto - PyPOS Local{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Editar Producto</h1>
+    <div>
+        <a href="{{ url_for('products.show', id=product.id) }}" class="btn btn-info me-2">
+            <i class="fas fa-eye me-1"></i>Ver Detalles
+        </a>
+        <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver a Productos
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="m-0">Información del Producto</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('products.edit', id=product.id) }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ product.name }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="sku" class="form-label">SKU (Código Interno)</label>
+                    <input type="text" class="form-control" id="sku" name="sku" value="{{ product.sku or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="barcode" class="form-label">Código de Barras</label>
+                    <input type="text" class="form-control" id="barcode" name="barcode" value="{{ product.barcode or '' }}">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Descripción</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ product.description or '' }}</textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="purchase_price" class="form-label">Precio de Compra ($)</label>
+                    <input type="number" class="form-control" id="purchase_price" name="purchase_price" 
+                           step="0.01" min="0" value="{{ product.purchase_price }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="sale_price" class="form-label">Precio de Venta ($) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="sale_price" name="sale_price" 
+                           step="0.01" min="0.01" value="{{ product.sale_price }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="current_stock" class="form-label">Stock Actual</label>
+                    <input type="number" class="form-control" id="current_stock" name="current_stock" 
+                           min="0" value="{{ product.current_stock }}">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <div id="profit-info" class="alert alert-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Ganancia por unidad:</strong> $<span id="profit-amount">{{ product.profit_amount }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Margen de beneficio:</strong> <span id="profit-margin">{{ product.profit_margin }}</span>%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calcular y mostrar la información de ganancia y margen de beneficio
+    document.addEventListener('DOMContentLoaded', function() {
+        const purchasePriceInput = document.getElementById('purchase_price');
+        const salePriceInput = document.getElementById('sale_price');
+        const profitInfo = document.getElementById('profit-info');
+        const profitAmount = document.getElementById('profit-amount');
+        const profitMargin = document.getElementById('profit-margin');
+        
+        function calculateProfit() {
+            const purchasePrice = parseFloat(purchasePriceInput.value) || 0;
+            const salePrice = parseFloat(salePriceInput.value) || 0;
+            
+            if (salePrice > 0) {
+                profitInfo.classList.remove('d-none');
+                
+                const profit = salePrice - purchasePrice;
+                profitAmount.textContent = profit.toFixed(2);
+                
+                let margin = 0;
+                if (purchasePrice > 0) {
+                    margin = (profit / purchasePrice) * 100;
+                } else if (salePrice > 0) {
+                    margin = 100;
+                }
+                
+                profitMargin.textContent = margin.toFixed(2);
+            } else {
+                profitInfo.classList.add('d-none');
+            }
+        }
+        
+        purchasePriceInput.addEventListener('input', calculateProfit);
+        salePriceInput.addEventListener('input', calculateProfit);
+    });
+</script>
+{% endblock %} 

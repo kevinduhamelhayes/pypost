@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Servicio de la aplicación Flask
+  backend:
+    build: .
+    container_name: pypos-local-backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=run.py
+      - FLASK_DEBUG=1
+    env_file:
+      - .env
+    command: >
+      sh -c "
+        flask db upgrade &&
+        flask run --host=0.0.0.0 --port=5000
+      "
+  
+  # Servicio de la base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: pypos-local-db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-pypos_local_db}
+      - POSTGRES_USER=${POSTGRES_USER:-pypos_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data: 
