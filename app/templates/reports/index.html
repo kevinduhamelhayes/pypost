@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+{% block title %}Informes y Estadísticas{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .table-responsive {
+        margin-top: 20px;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form id="reportFilters" class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Rango de Fechas</label>
+                    <input type="text" class="form-control" id="dateRange" name="dateRange">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <select class="form-control selectpicker" id="user" name="user" data-live-search="true">
+                        <option value="">Todos</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select class="form-control selectpicker" id="category" name="category" data-live-search="true">
+                        <option value="">Todas</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-filter"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Tarjetas de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ventas Totales</h6>
+                    <h3 class="mb-0" id="totalSales">$0.00</h3>
+                    <small class="text-white-50" id="salesCount">0 ventas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Productos Vendidos</h6>
+                    <h3 class="mb-0" id="totalProducts">0</h3>
+                    <small class="text-white-50" id="avgTicket">Ticket promedio: $0.00</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ganancia Estimada</h6>
+                    <h3 class="mb-0" id="totalProfit">$0.00</h3>
+                    <small class="text-white-50" id="profitMargin">Margen: 0%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Productos Bajos en Stock</h6>
+                    <h3 class="mb-0" id="lowStockCount">0</h3>
+                    <small class="text-white-50">Requieren atención</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Ventas por Período</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Ventas por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Productos Más Vendidos -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Productos Más Vendidos</h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('csv')">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('excel')">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportTable('pdf')">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="topProductsTable">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Unidades Vendidas</th>
+                            <th>Total Ventas</th>
+                            <th>Stock Actual</th>
+                            <th>Último Movimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Se llenará dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar selectpicker
+        $('.selectpicker').selectpicker();
+        
+        // Inicializar daterangepicker
+        $('#dateRange').daterangepicker({
+            startDate: moment().subtract(30, 'days'),
+            endDate: moment(),
+            ranges: {
+               'Hoy': [moment(), moment()],
+               'Ayer': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+               'Últimos 7 días': [moment().subtract(6, 'days'), moment()],
+               'Últimos 30 días': [moment().subtract(29, 'days'), moment()],
+               'Este mes': [moment().startOf('month'), moment().endOf('month')],
+               'Mes pasado': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            },
+            locale: {
+                format: 'DD/MM/YYYY',
+                applyLabel: 'Aplicar',
+                cancelLabel: 'Cancelar',
+                customRangeLabel: 'Rango personalizado'
+            }
+        });
+        
+        // Gráfico de ventas
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Ventas',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de categorías
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(153, 102, 255)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        
+        // Función para cargar datos
+        function loadReportData() {
+            const filters = {
+                dateRange: $('#dateRange').val(),
+                user: $('#user').val(),
+                category: $('#category').val()
+            };
+            
+            $.ajax({
+                url: '/reports/data',
+                data: filters,
+                success: function(response) {
+                    // Actualizar estadísticas
+                    $('#totalSales').text('$' + response.totalSales.toFixed(2));
+                    $('#salesCount').text(response.salesCount + ' ventas');
+                    $('#totalProducts').text(response.totalProducts);
+                    $('#avgTicket').text('Ticket promedio: $' + response.avgTicket.toFixed(2));
+                    $('#totalProfit').text('$' + response.totalProfit.toFixed(2));
+                    $('#profitMargin').text('Margen: ' + response.profitMargin.toFixed(1) + '%');
+                    $('#lowStockCount').text(response.lowStockCount);
+                    
+                    // Actualizar gráfico de ventas
+                    salesChart.data.labels = response.salesChart.labels;
+                    salesChart.data.datasets[0].data = response.salesChart.data;
+                    salesChart.update();
+                    
+                    // Actualizar gráfico de categorías
+                    categoryChart.data.labels = response.categoryChart.labels;
+                    categoryChart.data.datasets[0].data = response.categoryChart.data;
+                    categoryChart.update();
+                    
+                    // Actualizar tabla de productos
+                    const tbody = $('#topProductsTable tbody');
+                    tbody.empty();
+                    
+                    response.topProducts.forEach(product => {
+                        tbody.append(`
+                            <tr>
+                                <td>${product.name}</td>
+                                <td>${product.category}</td>
+                                <td>${product.quantity}</td>
+                                <td>$${product.total.toFixed(2)}</td>
+                                <td>${product.stock}</td>
+                                <td>${product.lastMovement}</td>
+                            </tr>
+                        `);
+                    });
+                }
+            });
+        }
+        
+        // Cargar datos iniciales
+        loadReportData();
+        
+        // Evento de filtrado
+        $('#reportFilters').on('submit', function(e) {
+            e.preventDefault();
+            loadReportData();
+        });
+        
+        // Función para exportar tabla
+        window.exportTable = function(format) {
+            const filters = {
+                dateRange: $('#dateRange').val(),
+                user: $('#user').val(),
+                category: $('#category').val(),
+                format: format
+            };
+            
+            window.location.href = '/reports/export?' + $.param(filters);
+        };
+    });
+</script>
+{% endblock %} 

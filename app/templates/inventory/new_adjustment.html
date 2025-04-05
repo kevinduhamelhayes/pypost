@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}Nuevo Ajuste de Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Nuevo Ajuste de Inventario</h2>
+        <div>
+            <a href="{{ url_for('inventory.adjustments') }}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> Ver Todos los Ajustes
+            </a>
+            <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Inventario
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Formulario de Ajuste</h5>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form id="adjustmentForm" method="POST" action="{{ url_for('inventory.new_adjustment') }}">
+                {{ form.csrf_token }}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="product_id">Producto <span class="text-danger">*</span></label>
+                            <select class="form-control selectpicker" id="product_id" name="product_id" data-live-search="true" required>
+                                <option value="">Seleccionar producto...</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}" data-stock="{{ product.stock_quantity }}" {% if form.product_id.data == product.id %}selected{% endif %}>
+                                        {{ product.name }} ({{ product.sku }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.product_id.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.product_id.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="adjustment_type">Tipo de Ajuste <span class="text-danger">*</span></label>
+                            <select class="form-control" id="adjustment_type" name="adjustment_type" required>
+                                <option value="add" {% if form.adjustment_type.data == 'add' %}selected{% endif %}>Agregar al inventario (+)</option>
+                                <option value="subtract" {% if form.adjustment_type.data == 'subtract' %}selected{% endif %}>Restar del inventario (-)</option>
+                                <option value="set" {% if form.adjustment_type.data == 'set' %}selected{% endif %}>Establecer cantidad exacta</option>
+                            </select>
+                            {% if form.adjustment_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.adjustment_type.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quantity">Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="{{ form.quantity.data or 1 }}" required>
+                            {% if form.quantity.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.quantity.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="reason">Razón <span class="text-danger">*</span></label>
+                            <select class="form-control" id="reason" name="reason" required>
+                                <option value="purchase" {% if form.reason.data == 'purchase' %}selected{% endif %}>Compra de productos</option>
+                                <option value="return" {% if form.reason.data == 'return' %}selected{% endif %}>Devolución de cliente</option>
+                                <option value="correction" {% if form.reason.data == 'correction' %}selected{% endif %}>Corrección de inventario</option>
+                                <option value="damage" {% if form.reason.data == 'damage' %}selected{% endif %}>Producto dañado</option>
+                                <option value="loss" {% if form.reason.data == 'loss' %}selected{% endif %}>Pérdida</option>
+                                <option value="other" {% if form.reason.data == 'other' %}selected{% endif %}>Otro</option>
+                            </select>
+                            {% if form.reason.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.reason.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group" id="other_reason_group" style="display: {% if form.reason.data == 'other' %}block{% else %}none{% endif %};">
+                            <label for="other_reason">Especificar razón <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="other_reason" name="other_reason" value="{{ form.other_reason.data or '' }}">
+                            {% if form.other_reason.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.other_reason.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Notas adicionales</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="4">{{ form.notes.data or '' }}</textarea>
+                            {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.notes.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" id="stock_info" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <div class="mr-3">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1">Información de Stock</h5>
+                            <p class="mb-0">Stock actual: <span id="current_stock_value" class="font-weight-bold">0</span></p>
+                            <p class="mb-0">Stock después del ajuste: <span id="new_stock_value" class="font-weight-bold">0</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-right mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="history.back();">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Ajuste
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Inicializar selectpicker para búsqueda de productos
+        $('.selectpicker').selectpicker();
+        
+        // Mostrar/ocultar campo "otra razón"
+        $('#reason').change(function() {
+            if ($(this).val() === 'other') {
+                $('#other_reason_group').show();
+                $('#other_reason').prop('required', true);
+            } else {
+                $('#other_reason_group').hide();
+                $('#other_reason').prop('required', false);
+            }
+        });
+        
+        // Actualizar información de stock cuando se selecciona un producto
+        $('#product_id').change(function() {
+            updateStockInfo();
+        });
+        
+        // Actualizar información de stock cuando cambia el tipo de ajuste o cantidad
+        $('#adjustment_type, #quantity').change(function() {
+            updateStockInfo();
+        });
+        
+        $('#quantity').on('input', function() {
+            updateStockInfo();
+        });
+        
+        // Función para actualizar la información de stock
+        function updateStockInfo() {
+            var productSelect = $('#product_id');
+            var selectedOption = productSelect.find('option:selected');
+            
+            if (selectedOption.val() !== '') {
+                var currentStock = parseInt(selectedOption.data('stock'));
+                var adjustmentType = $('#adjustment_type').val();
+                var quantity = parseInt($('#quantity').val()) || 0;
+                var newStock = 0;
+                
+                switch(adjustmentType) {
+                    case 'add':
+                        newStock = currentStock + quantity;
+                        break;
+                    case 'subtract':
+                        newStock = currentStock - quantity;
+                        break;
+                    case 'set':
+                        newStock = quantity;
+                        break;
+                    default:
+                        newStock = currentStock;
+                }
+                
+                $('#current_stock_value').text(currentStock);
+                $('#new_stock_value').text(newStock);
+                
+                // Mostrar alerta si el nuevo stock sería negativo
+                if (newStock < 0) {
+                    $('#new_stock_value').addClass('text-danger');
+                    $('#stock_info').removeClass('alert-info').addClass('alert-danger');
+                } else {
+                    $('#new_stock_value').removeClass('text-danger');
+                    $('#stock_info').removeClass('alert-danger').addClass('alert-info');
+                }
+                
+                $('#stock_info').show();
+            } else {
+                $('#stock_info').hide();
+            }
+        }
+        
+        // Validación del formulario
+        $('#adjustmentForm').submit(function(e) {
+            var productId = $('#product_id').val();
+            var adjustmentType = $('#adjustment_type').val();
+            var quantity = parseInt($('#quantity').val());
+            var reason = $('#reason').val();
+            var otherReason = $('#other_reason').val();
+            
+            if (!productId) {
+                e.preventDefault();
+                alert('Por favor seleccione un producto.');
+                return false;
+            }
+            
+            if (!quantity || quantity < 1) {
+                e.preventDefault();
+                alert('La cantidad debe ser mayor a cero.');
+                return false;
+            }
+            
+            if (reason === 'other' && !otherReason.trim()) {
+                e.preventDefault();
+                alert('Por favor especifique la razón.');
+                return false;
+            }
+            
+            var selectedOption = $('#product_id').find('option:selected');
+            var currentStock = parseInt(selectedOption.data('stock'));
+            
+            if (adjustmentType === 'subtract' && quantity > currentStock) {
+                if (!confirm('Está intentando restar más unidades de las que hay en stock. ¿Está seguro de continuar?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // Inicializar la información de stock si ya hay un producto seleccionado
+        if ($('#product_id').val()) {
+            updateStockInfo();
+        }
+    });
+</script>
+{% endblock %} 

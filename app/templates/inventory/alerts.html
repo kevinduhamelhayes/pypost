@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}Alertas de Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Alertas de Inventario</h2>
+        <div>
+            <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Inventario
+            </a>
+            <a href="{{ url_for('inventory.check_critical_stock') }}" class="btn btn-warning">
+                <i class="fas fa-exclamation-triangle"></i> Verificar Stock Crítico
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('inventory.alerts') }}" class="row">
+                <div class="col-md-3 form-group">
+                    <label for="alert_type">Tipo de Alerta:</label>
+                    <select class="form-control" id="alert_type" name="alert_type">
+                        <option value="" {% if not request.args.get('alert_type') %}selected{% endif %}>Todos los tipos</option>
+                        <option value="low_stock" {% if request.args.get('alert_type') == 'low_stock' %}selected{% endif %}>Stock Bajo</option>
+                        <option value="stock_out" {% if request.args.get('alert_type') == 'stock_out' %}selected{% endif %}>Sin Stock</option>
+                        <option value="expiration" {% if request.args.get('alert_type') == 'expiration' %}selected{% endif %}>Próximo a Vencer</option>
+                    </select>
+                </div>
+                <div class="col-md-3 form-group">
+                    <label for="status">Estado:</label>
+                    <select class="form-control" id="status" name="status">
+                        <option value="all" {% if request.args.get('status') == 'all' %}selected{% endif %}>Todos</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' or not request.args.get('status') %}selected{% endif %}>Pendientes</option>
+                        <option value="resolved" {% if request.args.get('status') == 'resolved' %}selected{% endif %}>Resueltas</option>
+                    </select>
+                </div>
+                <div class="col-md-4 form-group">
+                    <label for="search">Buscar Producto:</label>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Nombre o SKU del producto" value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="col-md-2 form-group d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lista de alertas -->
+    <div class="card mb-4">
+        <div class="card-header {% if request.args.get('status') == 'resolved' %}bg-success{% else %}bg-warning{% endif %} text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                {% if request.args.get('status') == 'resolved' %}
+                    Alertas Resueltas
+                {% else %}
+                    Alertas Pendientes
+                {% endif %}
+            </h5>
+            <span class="badge badge-light">Total: {{ pagination.total }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if alerts %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Producto</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-center">Fecha</th>
+                                <th>Mensaje</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                                <tr>
+                                    <td>{{ alert.id }}</td>
+                                    <td>
+                                        <a href="{{ url_for('products.view', product_id=alert.product.id) }}">
+                                            {{ alert.product.name }}
+                                        </a>
+                                        <br><small class="text-muted">{{ alert.product.sku }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if alert.alert_type == 'low_stock' %}
+                                            <span class="badge badge-warning">Stock Bajo</span>
+                                        {% elif alert.alert_type == 'stock_out' %}
+                                            <span class="badge badge-danger">Sin Stock</span>
+                                        {% elif alert.alert_type == 'expiration' %}
+                                            <span class="badge badge-info">Próximo a Vencer</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ alert.alert_type_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ alert.alert_datetime.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ alert.message }}</td>
+                                    <td class="text-center">
+                                        {% if alert.is_resolved %}
+                                            <span class="badge badge-success">Resuelta</span>
+                                            <br><small class="text-muted">{{ alert.resolved_datetime.strftime('%d/%m/%Y') }}</small>
+                                        {% else %}
+                                            <span class="badge badge-warning">Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if not alert.is_resolved %}
+                                            <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#resolveAlertModal" data-alert-id="{{ alert.id }}">
+                                                <i class="fas fa-check"></i> Resolver
+                                            </button>
+                                        {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#viewResolutionModal" 
+                                                data-alert-id="{{ alert.id }}"
+                                                data-resolution-notes="{{ alert.notes }}"
+                                                data-resolved-by="{{ alert.resolver.username }}"
+                                                data-resolved-date="{{ alert.resolved_datetime.strftime('%d/%m/%Y %H:%M') }}">
+                                                <i class="fas fa-eye"></i> Ver Resolución
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('products.view', product_id=alert.product.id) }}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-box"></i> Ver Producto
+                                            </a>
+                                            {% if alert.alert_type in ['low_stock', 'stock_out'] %}
+                                                <a href="{{ url_for('inventory.new_adjustment', product_id=alert.product.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-plus"></i> Ajustar Stock
+                                                </a>
+                                                <a href="{{ url_for('purchase_orders.create', product_id=alert.product.id) }}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-shopping-cart"></i> Ordenar
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info m-3">
+                    <i class="fas fa-info-circle"></i> No se encontraron alertas de inventario que cumplan con los criterios seleccionados.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Paginación -->
+    {% if pagination.pages > 1 %}
+        <nav aria-label="Navegación de páginas">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventory.alerts', page=pagination.page-1, **pagination.query_params) }}">Anterior</a>
+                </li>
+                
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('inventory.alerts', page=page_num, **pagination.query_params) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <li class="page-item {% if pagination.page == pagination.pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventory.alerts', page=pagination.page+1, **pagination.query_params) }}">Siguiente</a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+
+<!-- Modal para resolver alerta -->
+<div class="modal fade" id="resolveAlertModal" tabindex="-1" role="dialog" aria-labelledby="resolveAlertModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="resolveAlertModalLabel">Resolver Alerta</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="resolveAlertForm" action="" method="post">
+                <div class="modal-body">
+                    <p>¿Confirma que esta alerta ha sido resuelta?</p>
+                    <div class="form-group">
+                        <label for="resolution_notes">Notas de Resolución:</label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="3" placeholder="Indique las acciones tomadas para resolver esta alerta..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Marcar como Resuelta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de resolución -->
+<div class="modal fade" id="viewResolutionModal" tabindex="-1" role="dialog" aria-labelledby="viewResolutionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="viewResolutionModalLabel">Detalles de Resolución</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <strong>Información de Resolución</strong>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Resuelta por:</strong> <span id="resolved_by"></span></p>
+                        <p><strong>Fecha de resolución:</strong> <span id="resolved_date"></span></p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <strong>Notas de Resolución</strong>
+                    </div>
+                    <div class="card-body">
+                        <p id="resolution_notes_display"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Configurar modal de resolución
+        $('#resolveAlertModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var alertId = button.data('alert-id');
+            var form = $('#resolveAlertForm');
+            form.attr('action', "{{ url_for('inventory.resolve_alert', alert_id=0) }}".replace('0', alertId));
+        });
+        
+        // Configurar modal de visualización de resolución
+        $('#viewResolutionModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var resolvedBy = button.data('resolved-by');
+            var resolvedDate = button.data('resolved-date');
+            var resolutionNotes = button.data('resolution-notes');
+            
+            $(this).find('#resolved_by').text(resolvedBy);
+            $(this).find('#resolved_date').text(resolvedDate);
+            $(this).find('#resolution_notes_display').text(resolutionNotes || 'No se proporcionaron notas.');
+        });
+    });
+</script>
+{% endblock %} 

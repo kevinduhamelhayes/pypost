@@ -4,47 +4,75 @@
 
 {% block styles %}
 <style>
-    .product-item {
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid #dee2e6;
-    }
-    .product-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .cart-item {
-        border-bottom: 1px solid #eee;
-        padding: 8px 0;
-    }
-    #cart-container {
-        max-height: 60vh;
-        overflow-y: auto;
-    }
-    .payment-method-btn {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    #customer-info {
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
         padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 10px;
     }
-    .out-of-stock {
-        opacity: 0.5;
+    
+    .product-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
     }
-    .quantity-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        background: #007bff;
-        color: white;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
+    
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .cart-item {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .cart-total {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+    
+    #searchResults {
+        position: absolute;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 0 0 4px 4px;
+        display: none;
+    }
+    
+    .search-item {
+        padding: 8px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .search-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .category-filter {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 10px 0;
+    }
+    
+    .category-filter::-webkit-scrollbar {
+        height: 6px;
+    }
+    
+    .category-filter::-webkit-scrollbar-thumb {
+        background: #666;
+        border-radius: 3px;
     }
 </style>
 {% endblock %}
@@ -52,142 +80,101 @@
 {% block content %}
 <div class="container-fluid mt-3">
     <div class="row">
-        <!-- Panel de productos -->
+        <!-- Panel izquierdo: Productos -->
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Productos</h5>
-                        <div class="input-group" style="width: 300px;">
-                            <input type="text" id="search-product" class="form-control" placeholder="Buscar producto...">
-                            <div class="input-group-append">
-                                <button class="btn btn-light" type="button" id="search-btn">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Punto de Venta</h5>
+                    <div>
+                        <button type="button" class="btn btn-light btn-sm" id="toggleFullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="row" id="products-container">
-                        {% for product in products %}
-                        <div class="col-md-3 mb-3">
-                            <div class="card product-item {% if not product.is_in_stock %}out-of-stock{% endif %}" 
-                                 data-id="{{ product.id }}" 
-                                 data-name="{{ product.name }}" 
-                                 data-price="{{ product.sale_price }}"
-                                 data-stock="{{ product.current_stock }}">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">{{ product.name }}</h6>
-                                    <p class="card-text text-primary font-weight-bold">${{ product.sale_price }}</p>
-                                    <small class="text-muted">Stock: {{ product.current_stock }}</small>
-                                    {% if not product.is_in_stock %}
-                                    <div class="mt-2 text-danger"><small>Sin stock</small></div>
-                                    {% endif %}
-                                </div>
-                            </div>
+                
+                <div class="card-body p-2">
+                    <!-- Búsqueda -->
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
                         </div>
+                        <input type="text" class="form-control" id="searchProduct" 
+                               placeholder="Buscar producto por nombre, SKU o código de barras..."
+                               autocomplete="off">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button" id="scanBarcode">
+                                <i class="fas fa-barcode"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="searchResults"></div>
+                    
+                    <!-- Filtro por categorías -->
+                    <div class="category-filter mb-3">
+                        <button class="btn btn-outline-primary mr-2" data-category="">
+                            Todas
+                        </button>
+                        {% for category in categories %}
+                            <button class="btn btn-outline-primary mr-2" data-category="{{ category.id }}">
+                                {{ category.name }}
+                            </button>
                         {% endfor %}
                     </div>
-                    <div id="search-results" class="mt-3" style="display: none;">
-                        <h6>Resultados de búsqueda:</h6>
-                        <div class="row" id="search-results-container"></div>
+                    
+                    <!-- Grid de productos -->
+                    <div class="product-grid" id="productsGrid">
+                        {% for product in products %}
+                            <div class="product-card" data-product-id="{{ product.id }}" 
+                                 data-category="{{ product.category_id }}">
+                                <small class="text-muted">{{ product.sku }}</small>
+                                <h6 class="mb-1">{{ product.name }}</h6>
+                                <p class="mb-0 text-success">${{ "%.2f"|format(product.sale_price) }}</p>
+                                <small class="text-muted">Stock: {{ product.current_stock }}</small>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Panel de carrito -->
+        <!-- Panel derecho: Carrito -->
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-shopping-cart"></i> Carrito
-                        <button class="btn btn-sm btn-outline-light float-right" id="clear-cart">Limpiar</button>
-                    </h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Carrito de Compra</h5>
                 </div>
-                <div class="card-body">
-                    <!-- Información del cliente -->
-                    <div id="customer-info" class="bg-light">
-                        <div class="d-flex justify-content-between">
-                            <h6 class="mb-1">Cliente</h6>
-                            <button class="btn btn-sm btn-primary" id="select-customer">Seleccionar</button>
-                        </div>
-                        <p class="mb-0" id="customer-name">Cliente General</p>
-                        <input type="hidden" id="customer-id" value="">
-                    </div>
-                    
+                
+                <div class="card-body p-0">
                     <!-- Items del carrito -->
-                    <div id="cart-container">
-                        <div id="cart-items" class="mb-3">
-                            <div class="text-center py-4 text-muted">
-                                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
-                                <p>El carrito está vacío</p>
-                            </div>
-                        </div>
+                    <div id="cartItems" style="height: 400px; overflow-y: auto;">
+                        <!-- Los items se agregarán dinámicamente -->
                     </div>
                     
-                    <!-- Totales -->
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between">
+                    <!-- Resumen y totales -->
+                    <div class="p-3 border-top">
+                        <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal:</span>
                             <span id="subtotal">$0.00</span>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Descuento:</span>
-                            <span>
-                                <input type="number" id="discount" min="0" value="0" class="form-control form-control-sm" style="width: 100px;">
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Impuesto:</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>IVA (16%):</span>
                             <span id="tax">$0.00</span>
                         </div>
-                        <div class="d-flex justify-content-between font-weight-bold">
+                        <div class="d-flex justify-content-between cart-total">
                             <span>Total:</span>
                             <span id="total">$0.00</span>
                         </div>
                     </div>
                     
-                    <!-- Métodos de pago -->
-                    <div class="mt-4">
-                        <h6>Método de pago</h6>
-                        <div class="row">
-                            <div class="col-6">
-                                <button class="btn btn-primary payment-method-btn" data-method="cash">
-                                    <i class="fas fa-money-bill-alt"></i> Efectivo
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button class="btn btn-info payment-method-btn" data-method="card">
-                                    <i class="fas fa-credit-card"></i> Tarjeta
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button class="btn btn-secondary payment-method-btn" data-method="transfer">
-                                    <i class="fas fa-exchange-alt"></i> Transferencia
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button class="btn btn-warning payment-method-btn" data-method="other">
-                                    <i class="fas fa-ellipsis-h"></i> Otro
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Notas de venta -->
-                    <div class="mt-3">
-                        <div class="form-group">
-                            <label for="sale-notes">Notas:</label>
-                            <textarea id="sale-notes" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                    
-                    <!-- Botón de procesar venta -->
-                    <div class="mt-3">
-                        <button id="process-sale" class="btn btn-success btn-lg btn-block" disabled>
-                            <i class="fas fa-check"></i> Procesar Venta
+                    <!-- Botones de acción -->
+                    <div class="p-3 border-top">
+                        <button class="btn btn-danger btn-block mb-2" id="clearCart">
+                            <i class="fas fa-trash"></i> Limpiar Carrito
+                        </button>
+                        <button class="btn btn-success btn-block" id="checkout" disabled>
+                            <i class="fas fa-cash-register"></i> Procesar Venta
                         </button>
                     </div>
                 </div>
@@ -196,54 +183,352 @@
     </div>
 </div>
 
-<!-- Modal de Selección de Cliente -->
-<div class="modal fade" id="customerModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+<!-- Modal para cantidad de producto -->
+<div class="modal fade" id="quantityModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Seleccionar Cliente</h5>
+                <h5 class="modal-title">Cantidad</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="selectedProductId">
+                <div class="form-group">
+                    <label for="quantity">Cantidad:</label>
+                    <input type="number" class="form-control" id="quantity" min="1" value="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="addToCart">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para procesar venta -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Procesar Venta</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <input type="text" id="customer-search" class="form-control" placeholder="Buscar cliente...">
+                    <label for="paymentMethod">Método de Pago:</label>
+                    <select class="form-control" id="paymentMethod">
+                        <option value="cash">Efectivo</option>
+                        <option value="card">Tarjeta</option>
+                        <option value="transfer">Transferencia</option>
+                    </select>
                 </div>
-                <div id="customer-results" class="mt-3">
-                    <!-- Aquí se cargarán los resultados de búsqueda de clientes -->
+                
+                <div id="cashPaymentDetails">
+                    <div class="form-group">
+                        <label for="amountReceived">Monto Recibido:</label>
+                        <input type="number" class="form-control" id="amountReceived" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="change">Cambio:</label>
+                        <input type="text" class="form-control" id="change" readonly>
+                    </div>
+                </div>
+                
+                <div id="cardPaymentDetails" style="display: none;">
+                    <div class="form-group">
+                        <label for="cardReference">Referencia de Tarjeta:</label>
+                        <input type="text" class="form-control" id="cardReference">
+                    </div>
+                </div>
+                
+                <div id="transferPaymentDetails" style="display: none;">
+                    <div class="form-group">
+                        <label for="transferReference">Referencia de Transferencia:</label>
+                        <input type="text" class="form-control" id="transferReference">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customer">Cliente (opcional):</label>
+                    <select class="form-control selectpicker" id="customer" data-live-search="true">
+                        <option value="">Sin cliente</option>
+                        {% for customer in customers %}
+                            <option value="{{ customer.id }}">
+                                {{ customer.first_name }} {{ customer.last_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="saleNotes">Notas:</label>
+                    <textarea class="form-control" id="saleNotes" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <a href="{{ url_for('customers.create') }}" class="btn btn-primary">Nuevo Cliente</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Confirmación -->
-<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirmar Venta</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="btn btn-success" id="completeSale">
+                    <i class="fas fa-check"></i> Completar Venta
                 </button>
             </div>
-            <div class="modal-body">
-                <p>¿Está seguro de procesar esta venta?</p>
-                <div id="confirmation-details">
-                    <p><strong>Total:</strong> <span id="confirm-total"></span></p>
-                    <p><strong>Método de pago:</strong> <span id="confirm-payment"></span></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="confirm-sale">Confirmar</button>
-            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        let cart = [];
+        const TAX_RATE = 0.16;
+        
+        // Inicializar selectpicker para el selector de clientes
+        $('.selectpicker').selectpicker();
+        
+        // Función para actualizar totales
+        function updateTotals() {
+            let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let tax = subtotal * TAX_RATE;
+            let total = subtotal + tax;
+            
+            $('#subtotal').text('$' + subtotal.toFixed(2));
+            $('#tax').text('$' + tax.toFixed(2));
+            $('#total').text('$' + total.toFixed(2));
+            
+            // Habilitar/deshabilitar botón de checkout
+            $('#checkout').prop('disabled', cart.length === 0);
+        }
+        
+        // Función para actualizar el carrito en la UI
+        function updateCartUI() {
+            const cartContainer = $('#cartItems');
+            cartContainer.empty();
+            
+            cart.forEach((item, index) => {
+                const itemHtml = `
+                    <div class="cart-item">
+                        <div>
+                            <h6 class="mb-0">${item.name}</h6>
+                            <small class="text-muted">${item.sku}</small>
+                        </div>
+                        <div class="text-right">
+                            <div class="mb-1">
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" onclick="updateQuantity(${index}, -1)">-</button>
+                                    <button class="btn btn-outline-secondary" disabled>${item.quantity}</button>
+                                    <button class="btn btn-outline-secondary" onclick="updateQuantity(${index}, 1)">+</button>
+                                </div>
+                            </div>
+                            <div>$${(item.price * item.quantity).toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+                cartContainer.append(itemHtml);
+            });
+            
+            updateTotals();
+        }
+        
+        // Evento para agregar producto desde la cuadrícula
+        $('.product-card').click(function() {
+            const productId = $(this).data('product-id');
+            $('#selectedProductId').val(productId);
+            $('#quantity').val(1);
+            $('#quantityModal').modal('show');
+        });
+        
+        // Evento para agregar al carrito desde el modal
+        $('#addToCart').click(function() {
+            const productId = $('#selectedProductId').val();
+            const quantity = parseInt($('#quantity').val());
+            const productCard = $(`.product-card[data-product-id="${productId}"]`);
+            
+            const product = {
+                id: productId,
+                name: productCard.find('h6').text(),
+                sku: productCard.find('small').first().text(),
+                price: parseFloat(productCard.find('.text-success').text().replace('$', '')),
+                quantity: quantity
+            };
+            
+            // Verificar si el producto ya está en el carrito
+            const existingIndex = cart.findIndex(item => item.id === product.id);
+            if (existingIndex >= 0) {
+                cart[existingIndex].quantity += quantity;
+            } else {
+                cart.push(product);
+            }
+            
+            updateCartUI();
+            $('#quantityModal').modal('hide');
+        });
+        
+        // Función para remover item del carrito
+        window.removeFromCart = function(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        };
+        
+        // Función para actualizar cantidad
+        window.updateQuantity = function(index, change) {
+            const newQuantity = cart[index].quantity + change;
+            if (newQuantity > 0) {
+                cart[index].quantity = newQuantity;
+                updateCartUI();
+            }
+        };
+        
+        // Limpiar carrito
+        $('#clearCart').click(function() {
+            if (confirm('¿Estás seguro de querer limpiar el carrito?')) {
+                cart = [];
+                updateCartUI();
+            }
+        });
+        
+        // Filtro por categorías
+        $('.category-filter button').click(function() {
+            const categoryId = $(this).data('category');
+            $('.category-filter button').removeClass('active');
+            $(this).addClass('active');
+            
+            if (categoryId) {
+                $('.product-card').hide();
+                $(`.product-card[data-category="${categoryId}"]`).show();
+            } else {
+                $('.product-card').show();
+            }
+        });
+        
+        // Búsqueda de productos
+        $('#searchProduct').on('input', function() {
+            const query = $(this).val().toLowerCase();
+            if (query.length >= 2) {
+                const results = [];
+                $('.product-card').each(function() {
+                    const name = $(this).find('h6').text().toLowerCase();
+                    const sku = $(this).find('small').first().text().toLowerCase();
+                    if (name.includes(query) || sku.includes(query)) {
+                        results.push({
+                            id: $(this).data('product-id'),
+                            name: $(this).find('h6').text(),
+                            sku: $(this).find('small').first().text(),
+                            price: $(this).find('.text-success').text()
+                        });
+                    }
+                });
+                
+                const resultsHtml = results.map(product => `
+                    <div class="search-item" data-product-id="${product.id}">
+                        <strong>${product.name}</strong><br>
+                        <small class="text-muted">${product.sku}</small>
+                        <span class="float-right text-success">${product.price}</span>
+                    </div>
+                `).join('');
+                
+                $('#searchResults').html(resultsHtml).show();
+            } else {
+                $('#searchResults').hide();
+            }
+        });
+        
+        // Seleccionar producto desde resultados de búsqueda
+        $(document).on('click', '.search-item', function() {
+            const productId = $(this).data('product-id');
+            $('#selectedProductId').val(productId);
+            $('#quantity').val(1);
+            $('#searchResults').hide();
+            $('#searchProduct').val('');
+            $('#quantityModal').modal('show');
+        });
+        
+        // Cerrar resultados de búsqueda al hacer clic fuera
+        $(document).click(function(e) {
+            if (!$(e.target).closest('#searchProduct, #searchResults').length) {
+                $('#searchResults').hide();
+            }
+        });
+        
+        // Procesar venta
+        $('#checkout').click(function() {
+            $('#checkoutModal').modal('show');
+        });
+        
+        // Cambiar detalles según método de pago
+        $('#paymentMethod').change(function() {
+            const method = $(this).val();
+            $('#cashPaymentDetails, #cardPaymentDetails, #transferPaymentDetails').hide();
+            $(`#${method}PaymentDetails`).show();
+        });
+        
+        // Calcular cambio en pago en efectivo
+        $('#amountReceived').on('input', function() {
+            const received = parseFloat($(this).val()) || 0;
+            const total = parseFloat($('#total').text().replace('$', ''));
+            const change = received - total;
+            $('#change').val(change >= 0 ? '$' + change.toFixed(2) : 'Monto insuficiente');
+        });
+        
+        // Completar venta
+        $('#completeSale').click(function() {
+            const saleData = {
+                items: cart,
+                payment_method: $('#paymentMethod').val(),
+                customer_id: $('#customer').val(),
+                notes: $('#saleNotes').val(),
+                payment_details: {
+                    amount_received: parseFloat($('#amountReceived').val()) || 0,
+                    card_reference: $('#cardReference').val(),
+                    transfer_reference: $('#transferReference').val()
+                }
+            };
+            
+            // Enviar venta al servidor
+            $.ajax({
+                url: '/pos/process-sale',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(saleData),
+                success: function(response) {
+                    if (response.success) {
+                        // Imprimir ticket
+                        window.open('/pos/print-ticket/' + response.sale_id, '_blank');
+                        
+                        // Limpiar carrito y cerrar modal
+                        cart = [];
+                        updateCartUI();
+                        $('#checkoutModal').modal('hide');
+                        
+                        // Mostrar mensaje de éxito
+                        alert('Venta procesada correctamente');
+                    } else {
+                        alert('Error al procesar la venta: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Error al comunicarse con el servidor');
+                }
+            });
+        });
+        
+        // Pantalla completa
+        $('#toggleFullscreen').click(function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                $(this).find('i').removeClass('fa-expand').addClass('fa-compress');
+            } else {
+                document.exitFullscreen();
+                $(this).find('i').removeClass('fa-compress').addClass('fa-expand');
+            }
+        });
+    });
+</script>
 {% endblock %} 

@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Panel de Control de Inventario</h2>
+        <div>
+            <a href="{{ url_for('inventory.new_adjustment') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo Ajuste
+            </a>
+            <a href="{{ url_for('inventory.check_critical_stock') }}" class="btn btn-warning">
+                <i class="fas fa-exclamation-triangle"></i> Verificar Stock Crítico
+            </a>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Productos</h5>
+                    <p class="card-text display-4">{{ stats.total_products }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Productos Activos</h5>
+                    <p class="card-text display-4">{{ stats.active_products }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Stock Bajo</h5>
+                    <p class="card-text display-4">{{ stats.low_stock_products }}</p>
+                    <a href="{{ url_for('inventory.low_stock') }}" class="btn btn-sm btn-light">Ver Lista</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Sin Stock</h5>
+                    <p class="card-text display-4">{{ stats.out_of_stock_products }}</p>
+                    <a href="{{ url_for('inventory.low_stock') }}" class="btn btn-sm btn-light">Ver Lista</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Alertas pendientes -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0 text-white">Alertas Pendientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if pending_alerts %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alert in pending_alerts %}
+                                        <tr>
+                                            <td>{{ alert.product.name }}</td>
+                                            <td>
+                                                {% if alert.alert_type == 'low_stock' %}
+                                                    <span class="badge badge-warning">Stock Bajo</span>
+                                                {% elif alert.alert_type == 'stock_out' %}
+                                                    <span class="badge badge-danger">Sin Stock</span>
+                                                {% elif alert.alert_type == 'expiration' %}
+                                                    <span class="badge badge-info">Próximo a Vencer</span>
+                                                {% else %}
+                                                    <span class="badge badge-secondary">{{ alert.alert_type_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ alert.alert_datetime.strftime('%d/%m/%Y %H:%M') }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#resolveAlertModal" data-alert-id="{{ alert.id }}">
+                                                    <i class="fas fa-check"></i> Resolver
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <a href="{{ url_for('inventory.alerts') }}" class="btn btn-outline-warning btn-block mt-2">
+                            Ver Todas las Alertas
+                        </a>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <p class="mb-0">No hay alertas pendientes.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ajustes recientes -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0 text-white">Ajustes Recientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_adjustments %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cambio</th>
+                                        <th>Razón</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for adjustment in recent_adjustments %}
+                                        <tr>
+                                            <td>{{ adjustment.product.name }}</td>
+                                            <td class="{% if adjustment.quantity_change > 0 %}text-success{% elif adjustment.quantity_change < 0 %}text-danger{% endif %}">
+                                                {% if adjustment.quantity_change > 0 %}+{% endif %}{{ adjustment.quantity_change }}
+                                            </td>
+                                            <td>{{ adjustment.reason_display }}</td>
+                                            <td>{{ adjustment.adjustment_datetime.strftime('%d/%m/%Y %H:%M') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <a href="{{ url_for('inventory.adjustments') }}" class="btn btn-outline-info btn-block mt-2">
+                            Ver Todos los Ajustes
+                        </a>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">No hay ajustes recientes.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Accesos rápidos -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-clipboard-list"></i> Informes de Stock</h5>
+                    <p class="card-text">Genere reportes de inventario por categoría, valor o estado.</p>
+                    <a href="{{ url_for('inventory.stock_report') }}" class="btn btn-primary">Ver Informes</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-truck"></i> Proveedores</h5>
+                    <p class="card-text">Administre proveedores y creando nuevos contactos.</p>
+                    <a href="{{ url_for('suppliers.index') }}" class="btn btn-primary">Gestionar Proveedores</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-file-invoice"></i> Órdenes de Compra</h5>
+                    <p class="card-text">Cree y gestione órdenes de compra a proveedores.</p>
+                    <a href="{{ url_for('purchase_orders.index') }}" class="btn btn-primary">Gestionar Órdenes</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para resolver alerta -->
+<div class="modal fade" id="resolveAlertModal" tabindex="-1" role="dialog" aria-labelledby="resolveAlertModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="resolveAlertModalLabel">Resolver Alerta</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="resolveAlertForm" action="" method="post">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="resolution_notes">Notas de Resolución:</label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="3" placeholder="Indique las acciones tomadas para resolver esta alerta..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Marcar como Resuelta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#resolveAlertModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var alertId = button.data('alert-id');
+            var form = $('#resolveAlertForm');
+            form.attr('action', "{{ url_for('inventory.resolve_alert', alert_id=0) }}".replace('0', alertId));
+        });
+    });
+</script>
+{% endblock %} 

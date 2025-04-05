@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ticket #{{ sale.id }}</title>
+    <style>
+        @page {
+            size: 80mm 297mm;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 0;
+            padding: 10px;
+            width: 80mm;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .info {
+            margin-bottom: 10px;
+        }
+        
+        .info p {
+            margin: 2px 0;
+        }
+        
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+        
+        .items {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .items th {
+            text-align: left;
+            border-bottom: 1px solid #000;
+        }
+        
+        .items td {
+            padding: 2px 0;
+        }
+        
+        .amount {
+            text-align: right;
+        }
+        
+        .totals {
+            margin-top: 10px;
+            text-align: right;
+        }
+        
+        .totals p {
+            margin: 2px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+        }
+        
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">PyPOS Local</div>
+        <div>Sistema de Punto de Venta</div>
+    </div>
+    
+    <div class="info">
+        <p>Ticket #: {{ sale.id }}</p>
+        <p>Fecha: {{ sale.date.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+        <p>Cajero: {{ sale.user.full_name }}</p>
+        {% if sale.customer %}
+        <p>Cliente: {{ sale.customer.first_name }} {{ sale.customer.last_name }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="divider"></div>
+    
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Cant</th>
+                <th>Descripción</th>
+                <th>P.U.</th>
+                <th>Importe</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.items %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.product.name }}</td>
+                <td class="amount">${{ "%.2f"|format(item.unit_price) }}</td>
+                <td class="amount">${{ "%.2f"|format(item.subtotal) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="divider"></div>
+    
+    <div class="totals">
+        <p>Subtotal: ${{ "%.2f"|format(sale.subtotal) }}</p>
+        <p>IVA (16%): ${{ "%.2f"|format(sale.tax) }}</p>
+        <p><strong>Total: ${{ "%.2f"|format(sale.total) }}</strong></p>
+        
+        {% if sale.payment_method == 'cash' and sale.payment_details %}
+        <p>Efectivo: ${{ "%.2f"|format(sale.payment_details.amount_received) }}</p>
+        <p>Cambio: ${{ "%.2f"|format(sale.payment_details.amount_received - sale.total) }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="footer">
+        <p>Método de pago: {{ sale.payment_method|upper }}</p>
+        {% if sale.payment_method == 'card' and sale.payment_details %}
+        <p>Ref: {{ sale.payment_details.card_reference }}</p>
+        {% elif sale.payment_method == 'transfer' and sale.payment_details %}
+        <p>Ref: {{ sale.payment_details.transfer_reference }}</p>
+        {% endif %}
+        
+        {% if sale.notes %}
+        <p>Notas: {{ sale.notes }}</p>
+        {% endif %}
+        
+        <p>¡Gracias por su compra!</p>
+    </div>
+    
+    <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <button onclick="window.print()">Imprimir Ticket</button>
+        <button onclick="window.close()">Cerrar</button>
+    </div>
+</body>
+</html> 

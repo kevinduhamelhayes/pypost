@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
+from config import Config
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
@@ -18,12 +19,12 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 
-def create_app(test_config=None):
+def create_app(config_class=Config):
     """
     Función factory para crear y configurar la aplicación Flask.
     
     Args:
-        test_config: Configuración opcional para pruebas
+        config_class: Clase de configuración para la aplicación
         
     Returns:
         La aplicación Flask configurada
@@ -32,20 +33,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     
     # Configuración por defecto
-    app.config.from_mapping(
-        SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
-        SQLALCHEMY_DATABASE_URI=f"postgresql://{os.environ.get('POSTGRES_USER', 'pypos_user')}:"
-                               f"{os.environ.get('POSTGRES_PASSWORD', 'password')}@"
-                               f"{os.environ.get('POSTGRES_HOST', 'localhost')}:"
-                               f"{os.environ.get('POSTGRES_PORT', '5432')}/"
-                               f"{os.environ.get('POSTGRES_DB', 'pypos_local_db')}",
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        APP_NAME=os.environ.get('APP_NAME', 'PyPOS Local')
-    )
-    
-    # Sobrescribir configuración si se provee configuración de prueba
-    if test_config is not None:
-        app.config.update(test_config)
+    app.config.from_object(config_class)
     
     # Asegurar que existe el directorio de instancia
     try:
@@ -69,16 +57,15 @@ def create_app(test_config=None):
         return User.query.get(int(user_id))
     
     # Registrar blueprints
-    from app.routes import home_routes, product_routes, auth_routes, category_routes
-    from app.routes import pos_routes, cashier_routes, customer_routes
+    from app.routes import auth, main, products, inventory, customers, pos, reports
     
-    app.register_blueprint(home_routes.bp)
-    app.register_blueprint(product_routes.bp)
-    app.register_blueprint(auth_routes.bp)
-    app.register_blueprint(category_routes.bp)
-    app.register_blueprint(pos_routes.bp)
-    app.register_blueprint(cashier_routes.bp)
-    app.register_blueprint(customer_routes.bp)
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(main.bp)
+    app.register_blueprint(products.bp)
+    app.register_blueprint(inventory.bp)
+    app.register_blueprint(customers.bp)
+    app.register_blueprint(pos.bp)
+    app.register_blueprint(reports.bp)
     
     # Ruta de bienvenida para verificar que la app está funcionando
     @app.route('/hello')

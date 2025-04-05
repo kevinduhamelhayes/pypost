@@ -11,5 +11,8 @@ from app.routes import (
     category_routes,
     pos_routes,
     cashier_routes,
-    customer_routes
+    customer_routes,
+    inventory_routes,
+    supplier_routes,
+    purchase_order_routes
 ) 
