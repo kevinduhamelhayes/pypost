@@ -69,10 +69,11 @@ def create_app(test_config=None):
         return User.query.get(int(user_id))
     
     # Registrar blueprints
-    from app.routes import home_routes, product_routes, auth_routes
+    from app.routes import home_routes, product_routes, auth_routes, category_routes
     app.register_blueprint(home_routes.bp)
     app.register_blueprint(product_routes.bp)
     app.register_blueprint(auth_routes.bp)
+    app.register_blueprint(category_routes.bp)
     
     # Ruta de bienvenida para verificar que la app está funcionando
     @app.route('/hello')

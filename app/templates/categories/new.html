@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Nueva Categoría - PyPOS Local{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('home.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('categories.index') }}">Categorías</a></li>
+                    <li class="breadcrumb-item active">Nueva Categoría</li>
+                </ol>
+            </nav>
+            <h1><i class="fas fa-tag me-2"></i>Nueva Categoría</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form action="{{ url_for('categories.new') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required autofocus>
+                            <div class="form-text">Nombre único para la categoría. Ejemplos: Electrónica, Ropa, Alimentos, etc.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            <div class="form-text">Descripción opcional más detallada de la categoría.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="parent_id" class="form-label">Categoría Padre</label>
+                            <select class="form-select" id="parent_id" name="parent_id">
+                                <option value="">-- Ninguna (Categoría Principal) --</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.full_path }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Deje vacío para una categoría de nivel superior, o seleccione una categoría padre para crear una subcategoría.</div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">Activo</label>
+                            <div class="form-text">Las categorías inactivas no aparecerán en los menús de selección.</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('categories.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Volver
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Guardar Categoría
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información</h5>
+                </div>
+                <div class="card-body">
+                    <p>Las categorías pueden organizarse jerárquicamente, permitiendo una estructura de árbol.</p>
+                    <p>Ejemplos de estructura:</p>
+                    <ul>
+                        <li>Electrónica
+                            <ul>
+                                <li>Teléfonos</li>
+                                <li>Computadoras</li>
+                            </ul>
+                        </li>
+                        <li>Alimentos
+                            <ul>
+                                <li>Frescos</li>
+                                <li>Congelados</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <p class="text-muted small">Si no está seguro de la estructura, comience con categorías principales y reestructure más adelante.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

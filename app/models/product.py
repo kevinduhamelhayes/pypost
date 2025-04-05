@@ -18,6 +18,8 @@ class Product(db.Model):
         purchase_price: Precio de compra/costo del producto
         sale_price: Precio de venta del producto
         current_stock: Cantidad actual disponible en inventario
+        category_id: ID de la categoría a la que pertenece el producto
+        low_stock_threshold: Umbral para alertas de bajo stock
         is_active: Indica si el producto está activo/disponible
         created_at: Fecha y hora de creación del producto
         updated_at: Fecha y hora de última actualización del producto
@@ -33,12 +35,14 @@ class Product(db.Model):
     purchase_price = db.Column(db.Numeric(12, 2), default=0.00)
     sale_price = db.Column(db.Numeric(12, 2), nullable=False)
     current_stock = db.Column(db.Integer, default=0, nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    low_stock_threshold = db.Column(db.Integer, default=5)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __init__(self, name, description=None, sku=None, barcode=None, purchase_price=0.00, 
-                 sale_price=0.00, current_stock=0, is_active=True):
+                 sale_price=0.00, current_stock=0, category_id=None, low_stock_threshold=5, is_active=True):
         """
         Inicializa una nueva instancia de Product.
         
@@ -50,6 +54,8 @@ class Product(db.Model):
             purchase_price: Precio de compra/costo del producto
             sale_price: Precio de venta del producto
             current_stock: Cantidad inicial en inventario
+            category_id: ID de la categoría del producto
+            low_stock_threshold: Umbral para alertas de bajo stock
             is_active: Estado inicial del producto (activo/inactivo)
         """
         self.name = name
@@ -59,6 +65,8 @@ class Product(db.Model):
         self.purchase_price = purchase_price
         self.sale_price = sale_price
         self.current_stock = current_stock
+        self.category_id = category_id
+        self.low_stock_threshold = low_stock_threshold
         self.is_active = is_active
     
     def __repr__(self):
@@ -103,6 +111,16 @@ class Product(db.Model):
             True si current_stock > 0, False en caso contrario
         """
         return self.current_stock > 0
+    
+    @property
+    def is_low_stock(self):
+        """
+        Verifica si el producto tiene bajo stock.
+        
+        Returns:
+            True si current_stock <= low_stock_threshold, False en caso contrario
+        """
+        return self.current_stock <= self.low_stock_threshold
         
     def to_dict(self):
         """
@@ -120,10 +138,14 @@ class Product(db.Model):
             'purchase_price': float(self.purchase_price),
             'sale_price': float(self.sale_price),
             'current_stock': self.current_stock,
+            'category_id': self.category_id,
+            'category_name': self.category.name if self.category else None,
+            'low_stock_threshold': self.low_stock_threshold,
             'is_active': self.is_active,
             'profit_margin': self.profit_margin,
             'profit_amount': self.profit_amount,
             'is_in_stock': self.is_in_stock,
+            'is_low_stock': self.is_low_stock,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         } 
